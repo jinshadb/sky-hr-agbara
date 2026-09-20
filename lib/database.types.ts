@@ -7,8 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  // Allows the Supabase client to select the matching PostgREST type grammar.
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -490,6 +489,7 @@ export type Database = {
           department_id: string | null
           designation: string | null
           employee_id: string
+          employment_type: Database["public"]["Enums"]["employment_type"]
           id: string
           name: string
           payroll_id: string | null
@@ -505,6 +505,7 @@ export type Database = {
           department_id?: string | null
           designation?: string | null
           employee_id: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           id?: string
           name: string
           payroll_id?: string | null
@@ -520,6 +521,7 @@ export type Database = {
           department_id?: string | null
           designation?: string | null
           employee_id?: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           id?: string
           name?: string
           payroll_id?: string | null
@@ -972,6 +974,7 @@ export type Database = {
       audit_action: "insert" | "update" | "delete" | "approve" | "reopen"
       correction_type: "add_present" | "mark_absent" | "mark_leave"
       employee_status: "active" | "inactive"
+      employment_type: "company" | "contract"
       headcount_status: "pending" | "approved"
       leave_status: "pending" | "approved" | "rejected"
       leave_type: "paid" | "unpaid"

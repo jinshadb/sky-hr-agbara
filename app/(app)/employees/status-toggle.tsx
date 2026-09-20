@@ -17,7 +17,9 @@ export default function StatusToggle({
       className={`badge ${status === "active" ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-600"}`}
       disabled={pending}
       onClick={() =>
-        startTransition(() => setEmployeeStatus(employeeId, status === "active" ? "inactive" : "active"))
+        startTransition(async () => {
+          await setEmployeeStatus(employeeId, status === "active" ? "inactive" : "active");
+        })
       }
       title="Click to toggle"
     >

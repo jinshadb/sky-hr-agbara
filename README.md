@@ -6,7 +6,7 @@ details (schema, workflow, screens, roles) are in `docs/DESIGN.md`.
 
 Stack: Next.js 14 (App Router, TypeScript) + Supabase (Postgres/Auth) + Tailwind CSS.
 
-## 1. Create the Supabase project 
+## 1. Create the Supabase project
 
 1. Create a new, empty Supabase project (a separate project — do not reuse an
    existing one).

@@ -7,11 +7,12 @@ export default async function TicketDetailPage({ params }: { params: { id: strin
   await requireProfile(["hr_admin", "hr_officer", "canteen_user"]);
   const supabase = createClient();
 
-  const { data: ticket } = await supabase
+  const { data: ticketData } = await supabase
     .from("canteen_tickets")
     .select("*, departments(name), shifts(name)")
     .eq("id", params.id)
     .single();
+  const ticket = ticketData as any;
 
   const { data: eligible } = await supabase
     .from("ticket_eligible_employees")
@@ -22,7 +23,7 @@ export default async function TicketDetailPage({ params }: { params: { id: strin
     .from("meal_records")
     .select("employee_id")
     .eq("ticket_id", params.id);
-  const servedSet = new Set((served ?? []).map((s) => s.employee_id));
+  const servedSet = new Set(((served ?? []) as Array<{ employee_id: string }>).map((s) => s.employee_id));
 
   if (!ticket) return <p>Ticket not found.</p>;
 

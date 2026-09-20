@@ -10,12 +10,13 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
   const month = Number(searchParams.month) || now.getMonth() + 1;
   const year = Number(searchParams.year) || now.getFullYear();
 
-  const { data: period } = await supabase
+  const { data: periodData } = await supabase
     .from("payroll_periods")
     .select("id, status, generated_at")
     .eq("period_month", month)
     .eq("period_year", year)
     .maybeSingle();
+  const period = periodData as { id: string; status: string; generated_at: string | null } | null;
 
   let summary: any[] = [];
   if (period) {

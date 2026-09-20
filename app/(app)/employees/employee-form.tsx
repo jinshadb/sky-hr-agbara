@@ -19,6 +19,7 @@ export default function EmployeeForm({
     designation: "",
     shift_id: "",
     payroll_id: "",
+    employment_type: "company" as "company" | "contract",
     canteen_eligible: true,
   });
   const [pending, startTransition] = useTransition();
@@ -43,6 +44,7 @@ export default function EmployeeForm({
           designation: "",
           shift_id: "",
           payroll_id: "",
+          employment_type: "company",
           canteen_eligible: true,
         });
       }
@@ -113,6 +115,15 @@ export default function EmployeeForm({
         value={form.payroll_id}
         onChange={(e) => update("payroll_id", e.target.value)}
       />
+      <select
+        className="input"
+        value={form.employment_type}
+        onChange={(e) => update("employment_type", e.target.value as "company" | "contract")}
+        aria-label="Employment type"
+      >
+        <option value="company">Company staff</option>
+        <option value="contract">Contract staff</option>
+      </select>
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"

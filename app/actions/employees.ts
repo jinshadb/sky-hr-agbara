@@ -14,6 +14,7 @@ export type EmployeeInput = {
   shift_id?: string | null;
   payroll_id?: string | null;
   status?: "active" | "inactive";
+  employment_type?: "company" | "contract";
   canteen_eligible?: boolean;
 };
 
@@ -33,6 +34,7 @@ export async function upsertEmployee(input: EmployeeInput) {
         shift_id: input.shift_id || null,
         payroll_id: input.payroll_id || null,
         status: input.status || "active",
+        employment_type: input.employment_type || "company",
         canteen_eligible: input.canteen_eligible ?? true,
         updated_at: new Date().toISOString(),
       },
@@ -63,6 +65,7 @@ export async function bulkImportEmployees(rows: EmployeeInput[]) {
         designation: row.designation || null,
         payroll_id: row.payroll_id || null,
         status: (row.status as "active" | "inactive") || "active",
+        employment_type: row.employment_type === "contract" ? "contract" : "company",
         canteen_eligible:
           row.canteen_eligible === undefined ? true : Boolean(row.canteen_eligible),
         updated_at: new Date().toISOString(),

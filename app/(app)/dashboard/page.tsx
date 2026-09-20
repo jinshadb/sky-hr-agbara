@@ -32,9 +32,10 @@ export default async function DashboardPage() {
       .from("approved_attendance")
       .select("status")
       .eq("work_date", today);
-    const present = (attendance ?? []).filter((a) => a.status === "present" || a.status === "half_day").length;
-    const absent = (attendance ?? []).filter((a) => a.status === "absent").length;
-    const leave = (attendance ?? []).filter((a) => a.status === "leave").length;
+    const attendanceRows = (attendance ?? []) as Array<{ status: "present" | "absent" | "leave" | "half_day" }>;
+    const present = attendanceRows.filter((a) => a.status === "present" || a.status === "half_day").length;
+    const absent = attendanceRows.filter((a) => a.status === "absent").length;
+    const leave = attendanceRows.filter((a) => a.status === "leave").length;
     const { data: recon } = await supabase.from("daily_reconciliation").select("authorized, served").eq("work_date", today);
     const mealAuthorized = (recon ?? []).reduce((a, r: any) => a + r.authorized, 0);
     const mealServed = (recon ?? []).reduce((a, r: any) => a + r.served, 0);
@@ -63,10 +64,11 @@ export default async function DashboardPage() {
   }
   const { data: headcount } = await headcountQuery;
 
-  const pending = (headcount ?? []).filter((h) => h.status === "pending").length;
-  const approved = (headcount ?? []).filter((h) => h.status === "approved").length;
-  const totalBiometric = (headcount ?? []).reduce((a, h) => a + h.biometric_headcount, 0);
-  const totalVerified = (headcount ?? []).reduce((a, h) => a + (h.verified_headcount ?? 0), 0);
+  const headcountRows = (headcount ?? []) as Array<{ status: "pending" | "approved"; biometric_headcount: number; verified_headcount: number | null; departments?: { name: string } | null }>;
+  const pending = headcountRows.filter((h) => h.status === "pending").length;
+  const approved = headcountRows.filter((h) => h.status === "approved").length;
+  const totalBiometric = headcountRows.reduce((a, h) => a + h.biometric_headcount, 0);
+  const totalVerified = headcountRows.reduce((a, h) => a + (h.verified_headcount ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -94,7 +96,7 @@ export default async function DashboardPage() {
             </tr>
           </thead>
           <tbody>
-            {(headcount ?? []).map((h: any, i: number) => (
+            {headcountRows.map((h, i) => (
               <tr key={i}>
                 <td>{h.departments?.name ?? "—"}</td>
                 <td>{h.biometric_headcount}</td>

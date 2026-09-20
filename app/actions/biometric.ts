@@ -111,7 +111,7 @@ export async function processBiometricUpload(fileName: string, rows: BiometricRo
     work_date: a.work_date,
     department_id: a.employee.department_id,
     shift_id: a.employee.shift_id,
-    biometric_status: a.hours >= PRESENT_HOURS_THRESHOLD ? "present" : "half_day",
+    biometric_status: (a.hours >= PRESENT_HOURS_THRESHOLD ? "present" : "half_day") as "present" | "half_day",
     hours_worked: a.hours,
     source_upload_id: upload.id,
   }));

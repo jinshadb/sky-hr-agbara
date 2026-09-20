@@ -41,7 +41,7 @@ export default async function BiometricUploadPage() {
             </tr>
           </thead>
           <tbody>
-            {(recentUploads ?? []).map((u) => (
+            {((recentUploads ?? []) as Array<{ id: string; file_name: string; uploaded_at: string; total_rows: number; matched_rows: number; unmatched_rows: number; duplicate_rows: number; status: string }>).map((u) => (
               <tr key={u.id}>
                 <td>{u.file_name}</td>
                 <td>{new Date(u.uploaded_at).toLocaleString()}</td>

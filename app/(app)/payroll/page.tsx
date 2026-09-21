@@ -22,7 +22,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
   if (period) {
     const { data } = await supabase
       .from("payroll_attendance_summary")
-      .select("present_days, absent_days, leave_paid_days, leave_unpaid_days, half_days, paid_days, unpaid_days, ot_hours, deduction_days, employees(employee_id, name, payroll_id, departments(name))")
+      .select("present_days, absent_days, leave_paid_days, leave_unpaid_days, half_days, employees(employee_id, name, departments(name))")
       .eq("payroll_period_id", period.id)
       .order("employee_id");
     summary = data ?? [];
@@ -31,9 +31,9 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Monthly Payroll Attendance</h1>
+        <h1 className="text-xl font-semibold">Final Attendance Summary</h1>
         <p className="text-sm text-slate-500">
-          Computed from approved, locked attendance — export straight to your existing payroll process.
+          Approved attendance summary for manual payroll and overtime processing.
         </p>
       </div>
 
@@ -61,11 +61,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
               <th>Leave (paid)</th>
               <th>Leave (unpaid)</th>
               <th>Half days</th>
-              <th>Paid days</th>
-              <th>Unpaid days</th>
-              <th>OT hrs</th>
-              <th>Deduction days</th>
-            </tr>
+                </tr>
           </thead>
           <tbody>
             {summary.map((s: any, i: number) => (
@@ -78,16 +74,12 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
                 <td>{s.leave_paid_days}</td>
                 <td>{s.leave_unpaid_days}</td>
                 <td>{s.half_days}</td>
-                <td>{s.paid_days}</td>
-                <td>{s.unpaid_days}</td>
-                <td>{s.ot_hours}</td>
-                <td>{s.deduction_days}</td>
               </tr>
             ))}
             {summary.length === 0 && (
               <tr>
-                <td colSpan={12} className="text-center text-slate-400 py-6">
-                  No payroll summary generated for this period yet.
+                <td colSpan={8} className="text-center text-slate-400 py-6">
+                  No final attendance summary generated for this period yet.
                 </td>
               </tr>
             )}

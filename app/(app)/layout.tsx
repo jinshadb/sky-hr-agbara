@@ -10,7 +10,7 @@ const NAV: { href: string; label: string; roles: Role[] }[] = [
   { href: "/tickets", label: "Canteen Tickets", roles: ["hr_admin", "hr_officer"] },
   { href: "/canteen/scan", label: "Canteen Scan", roles: ["hr_admin", "canteen_user"] },
   { href: "/reconciliation", label: "Reconciliation", roles: ["hr_admin", "hr_officer", "canteen_user", "management"] },
-  { href: "/payroll", label: "Payroll Attendance", roles: ["hr_admin", "payroll_user"] },
+  { href: "/payroll", label: "Final Attendance", roles: ["hr_admin", "payroll_user"] },
   { href: "/users", label: "Users & Roles", roles: ["hr_admin"] },
   { href: "/audit", label: "Audit Log", roles: ["hr_admin"] },
 ];

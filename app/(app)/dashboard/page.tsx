@@ -107,7 +107,7 @@ export default async function DashboardPage() {
       } | null;
     }>;
 
-    lateArrivals = rows.flatMap((row) => {
+    const arrivals = rows.flatMap((row) => {
       const employee = row.employee;
       if (!employee || !row.first_in || !employee.shift?.start_time) return [];
       const firstInMinutes = timeToMinutes(row.first_in);
@@ -122,7 +122,13 @@ export default async function DashboardPage() {
         firstIn: row.first_in.slice(0, 5),
         lateBy: firstInMinutes - shiftStartMinutes,
       }];
-    }).sort((a, b) => b.lateBy - a.lateBy);
+    });
+    const earliestByEmployee = new Map<string, typeof arrivals[number]>();
+    for (const arrival of arrivals) {
+      const existing = earliestByEmployee.get(arrival.employee_id);
+      if (!existing || arrival.firstIn < existing.firstIn) earliestByEmployee.set(arrival.employee_id, arrival);
+    }
+    lateArrivals = Array.from(earliestByEmployee.values()).sort((a, b) => b.lateBy - a.lateBy);
   }
 
   return (
@@ -202,7 +208,7 @@ export default async function DashboardPage() {
               {lateArrivals.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center text-slate-400 py-6">
-                    No late arrivals found for today.
+                    No late arrivals found. Confirm today’s biometric upload and employee shift assignments if you expected results.
                   </td>
                 </tr>
               )}

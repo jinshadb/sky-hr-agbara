@@ -47,7 +47,7 @@ function readEmployeeRows(rawRows: unknown[][]): ImportRow[] {
       ? (typeColumn >= 0 ? "trial" : "company")
       : sourceType.includes("trial") || sourceType.includes("enrol") || sourceType.includes("trainee")
         ? "trial"
-        : sourceType.includes("contract") || sourceType.includes("casual")
+        : sourceType.includes("contract") || sourceType.includes("casual") || sourceType.includes("temporary") || sourceType === "temp"
           ? "contract"
           : "company";
 

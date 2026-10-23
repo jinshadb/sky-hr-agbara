@@ -32,7 +32,7 @@ function canonicalDepartment(value: string): string {
 function employmentType(value?: string | null): EmploymentType {
   const normalized = (value ?? "").trim().toLowerCase();
   if (normalized === "trial" || normalized.includes("enrol") || normalized.includes("trainee")) return "trial";
-  if (normalized === "contract" || normalized === "casual" || normalized === "contract staff") return "contract";
+  if (normalized === "contract" || normalized === "casual" || normalized.includes("temporary") || normalized === "temp" || normalized === "contract staff") return "contract";
   return "company";
 }
 

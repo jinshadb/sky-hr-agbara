@@ -35,8 +35,9 @@ export default async function EmployeesPage() {
         <div className="card">
           <h2 className="font-medium mb-2">Bulk import (CSV / Excel)</h2>
           <p className="text-sm text-slate-500 mb-2">
-            Columns: employee_id, biometric_id, name, employment_type, section, designation,
-            payroll_id, status, canteen_eligible. Employment type must be company or contract.
+            Accepts the biometric employee export. Employee ID is also used as biometric ID.
+            Official maps to Company; blank employment type maps to Trial / Enrollee.
+            Assign shifts after import. Unconfigured department labels are retained in Section.
           </p>
           <EmployeeImport />
         </div>
@@ -63,7 +64,7 @@ export default async function EmployeesPage() {
                 <td className="font-medium">{e.employee_id}</td>
                 <td>{e.biometric_id ?? "—"}</td>
                 <td>{e.name}</td>
-                <td className="capitalize">{e.employment_type === "contract" ? "Contract" : "Company"}</td>
+                <td>{e.employment_type === "contract" ? "Contract" : e.employment_type === "trial" ? "Trial / Enrollee" : "Company"}</td>
                 <td>{e.departments?.name ?? "—"}</td>
                 <td>{e.shifts?.name ?? "—"}</td>
                 <td>{e.designation ?? "—"}</td>

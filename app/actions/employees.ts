@@ -4,19 +4,37 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 
+export type EmploymentType = "company" | "contract" | "trial";
+
 export type EmployeeInput = {
   employee_id: string;
   biometric_id?: string | null;
   name: string;
   department_id?: string | null;
+  department?: string | null;
   section?: string | null;
   designation?: string | null;
   shift_id?: string | null;
   payroll_id?: string | null;
   status?: "active" | "inactive";
-  employment_type?: "company" | "contract";
+  employment_type?: EmploymentType;
   canteen_eligible?: boolean;
 };
+
+function canonicalDepartment(value: string): string {
+  const name = value.trim();
+  if (/^maintenance\b/i.test(name)) return "Maintenance";
+  if (/^quality(\s+control)?\b/i.test(name)) return "Quality";
+  if (/^warehouse(\/stores)?\b/i.test(name)) return "Warehouse";
+  return name;
+}
+
+function employmentType(value?: string | null): EmploymentType {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (normalized === "trial" || normalized.includes("enrol") || normalized.includes("trainee")) return "trial";
+  if (normalized === "contract" || normalized === "casual" || normalized === "contract staff") return "contract";
+  return "company";
+}
 
 export async function upsertEmployee(input: EmployeeInput) {
   await requireProfile(["hr_admin", "hr_officer"]);
@@ -48,36 +66,59 @@ export async function upsertEmployee(input: EmployeeInput) {
 export async function bulkImportEmployees(rows: EmployeeInput[]) {
   await requireProfile(["hr_admin", "hr_officer"]);
   const supabase = createClient();
+  const { data: departments, error: departmentError } = await supabase.from("departments").select("id, name");
+  if (departmentError) {
+    return { inserted: 0, total: rows.length, errors: [departmentError.message], warnings: [] as string[] };
+  }
+
+  const departmentIds = new Map((departments ?? []).map((department) => [department.name.trim().toLowerCase(), department.id]));
   let inserted = 0;
   const errors: string[] = [];
+  const unmappedDepartments = new Set<string>();
 
   for (const row of rows) {
-    if (!row.employee_id || !row.name) {
-      errors.push(`Skipped row missing employee_id/name: ${JSON.stringify(row)}`);
+    const employeeId = String(row.employee_id ?? "").trim();
+    const employeeName = String(row.name ?? "").trim();
+    if (!employeeId || !employeeName) {
+      errors.push("Skipped a row missing Employee ID or name.");
       continue;
     }
+
+    const sourceDepartment = String(row.department ?? "").trim();
+    const canonicalName = sourceDepartment ? canonicalDepartment(sourceDepartment) : "";
+    const mappedDepartmentId = row.department_id || departmentIds.get(canonicalName.toLowerCase()) || null;
+    const sectionFromSource = sourceDepartment && !mappedDepartmentId
+      ? sourceDepartment
+      : sourceDepartment && canonicalName !== sourceDepartment
+        ? sourceDepartment.replace(canonicalName, "").trim()
+        : null;
+    if (sourceDepartment && !mappedDepartmentId) unmappedDepartments.add(sourceDepartment);
+
     const { error } = await supabase.from("employees").upsert(
       {
-        employee_id: String(row.employee_id).trim(),
-        biometric_id: row.biometric_id ? String(row.biometric_id).trim() : null,
-        name: String(row.name).trim(),
-        section: row.section || null,
-        designation: row.designation || null,
-        payroll_id: row.payroll_id || null,
-        status: (row.status as "active" | "inactive") || "active",
-        employment_type: row.employment_type === "contract" ? "contract" : "company",
-        canteen_eligible:
-          row.canteen_eligible === undefined ? true : Boolean(row.canteen_eligible),
+        employee_id: employeeId,
+        biometric_id: String(row.biometric_id ?? "").trim() || employeeId,
+        name: employeeName,
+        department_id: mappedDepartmentId,
+        section: String(row.section ?? "").trim() || sectionFromSource || null,
+        designation: String(row.designation ?? "").trim() || null,
+        payroll_id: String(row.payroll_id ?? "").trim() || null,
+        status: row.status === "inactive" ? "inactive" : "active",
+        employment_type: employmentType(row.employment_type),
+        canteen_eligible: row.canteen_eligible ?? true,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "employee_id" }
     );
-    if (error) errors.push(`${row.employee_id}: ${error.message}`);
+    if (error) errors.push(`${employeeId}: ${error.message}`);
     else inserted++;
   }
 
   revalidatePath("/employees");
-  return { inserted, total: rows.length, errors };
+  const warnings = Array.from(unmappedDepartments).map(
+    (name) => `Department "${name}" was kept in Section because it is not configured in Departments.`
+  );
+  return { inserted, total: rows.length, errors, warnings };
 }
 
 export async function setEmployeeStatus(employeeId: string, status: "active" | "inactive") {

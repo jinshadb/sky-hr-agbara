@@ -50,6 +50,8 @@ export async function processBiometricUpload(fileName: string, rows: BiometricRo
   let duplicates = 0;
 
   const recordsToInsert: any[] = [];
+  const employeesMissingDepartment = new Set<string>();
+  const employeesMissingShift = new Set<string>();
   // employee_id -> work_date -> best row (for daily_attendance rollup)
   const attendanceMap = new Map<string, { employee: any; work_date: string; hours: number }>();
 
@@ -60,6 +62,8 @@ export async function processBiometricUpload(fileName: string, rows: BiometricRo
 
     const employee = byBiometricId.get(String(row.biometric_id));
     const isUnknown = !employee;
+    if (employee && !employee.department_id) employeesMissingDepartment.add(employee.id);
+    if (employee && !employee.shift_id) employeesMissingShift.add(employee.id);
 
     if (isUnknown) unmatched++;
     else if (isDuplicate) duplicates++;
@@ -177,7 +181,16 @@ export async function processBiometricUpload(fileName: string, rows: BiometricRo
 
   return {
     error: null,
-    summary: { total: rows.length, matched, unmatched, duplicates, uploadId: upload.id },
+    summary: {
+      total: rows.length,
+      matched,
+      unmatched,
+      duplicates,
+      uploadId: upload.id,
+      headcountGroups: headcountMap.size,
+      missingDepartment: employeesMissingDepartment.size,
+      missingShift: employeesMissingShift.size,
+    },
   };
 }
 

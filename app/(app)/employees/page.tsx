@@ -3,6 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import EmployeeImport from "./employee-import";
 import EmployeeForm from "./employee-form";
 import StatusToggle from "./status-toggle";
+import EmployeeAssignment from "./employee-assignment";
 
 export default async function EmployeesPage() {
   await requireProfile(["hr_admin", "hr_officer"]);
@@ -41,6 +42,25 @@ export default async function EmployeesPage() {
           </p>
           <EmployeeImport />
         </div>
+      </div>
+
+      <div className="card">
+        <h2 className="font-medium mb-1">Bulk department and shift assignment</h2>
+        <p className="text-sm text-slate-500 mb-3">
+          Assign existing employees to their correct department and shift. This setup is required for biometric headcount and absence tracking.
+        </p>
+        <EmployeeAssignment
+          employees={(employees ?? []).map((e: any) => ({
+            id: e.id,
+            employee_id: e.employee_id,
+            name: e.name,
+            employment_type: e.employment_type,
+            department: e.departments?.name ?? null,
+            shift: e.shifts?.name ?? null,
+          }))}
+          departments={departments ?? []}
+          shifts={shifts ?? []}
+        />
       </div>
 
       <div className="card overflow-x-auto">

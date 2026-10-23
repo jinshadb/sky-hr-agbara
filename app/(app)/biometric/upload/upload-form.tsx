@@ -151,8 +151,12 @@ export default function UploadForm() {
         return;
       }
       const s = res.summary!;
+      const setupWarnings: string[] = [];
+      if (s.headcountGroups === 0) setupWarnings.push("No headcount groups were created.");
+      if (s.missingDepartment > 0) setupWarnings.push(`${s.missingDepartment} matched employee(s) need a department.`);
+      if (s.missingShift > 0) setupWarnings.push(`${s.missingShift} matched employee(s) need a shift.`);
       setResult(
-        `Processed ${s.total} rows — ${s.matched} matched, ${s.unmatched} unknown employee(s), ${s.duplicates} duplicate(s).`
+        `Processed ${s.total} rows — ${s.matched} matched, ${s.unmatched} unknown employee(s), ${s.duplicates} duplicate(s).${setupWarnings.length ? " Setup needed: " + setupWarnings.join(" ") : " Headcount groups created: " + s.headcountGroups + "."}`
       );
       setRows(null);
     });

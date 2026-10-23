@@ -121,6 +121,44 @@ export async function bulkImportEmployees(rows: EmployeeInput[]) {
   return { inserted, total: rows.length, errors, warnings };
 }
 
+export async function bulkAssignEmployees(
+  employeeIds: string[],
+  updateDepartment: boolean,
+  departmentId: string,
+  updateShift: boolean,
+  shiftId: string
+) {
+  await requireProfile(["hr_admin", "hr_officer"]);
+  const ids = Array.from(new Set(employeeIds.map((id) => String(id).trim()).filter(Boolean)));
+  if (ids.length === 0) return { error: "Select at least one employee.", updated: 0 };
+  if (ids.length > 1000) return { error: "Select no more than 1,000 employees at a time.", updated: 0 };
+  if (!updateDepartment && !updateShift) {
+    return { error: "Choose whether to update department, shift, or both.", updated: 0 };
+  }
+
+  const supabase = createClient();
+  const values: { updated_at: string; department_id?: string; shift_id?: string } = { updated_at: new Date().toISOString() };
+  if (updateDepartment) {
+    if (!departmentId) return { error: "Choose a department.", updated: 0 };
+    values.department_id = departmentId;
+  }
+  if (updateShift) {
+    if (!shiftId) return { error: "Choose a shift.", updated: 0 };
+    values.shift_id = shiftId;
+  }
+
+  const { data, error } = await supabase
+    .from("employees")
+    .update(values)
+    .in("id", ids)
+    .select("id");
+  if (error) return { error: error.message, updated: 0 };
+
+  revalidatePath("/employees");
+  revalidatePath("/biometric/upload");
+  return { error: null, updated: data?.length ?? 0 };
+}
+
 export async function setEmployeeStatus(employeeId: string, status: "active" | "inactive") {
   await requireProfile(["hr_admin", "hr_officer"]);
   const supabase = createClient();

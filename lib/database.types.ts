@@ -974,7 +974,7 @@ export type Database = {
       audit_action: "insert" | "update" | "delete" | "approve" | "reopen"
       correction_type: "add_present" | "mark_absent" | "mark_leave"
       employee_status: "active" | "inactive"
-      employment_type: "company" | "contract"
+      employment_type: "company" | "contract" | "trial"
       headcount_status: "pending" | "approved"
       leave_status: "pending" | "approved" | "rejected"
       leave_type: "paid" | "unpaid"

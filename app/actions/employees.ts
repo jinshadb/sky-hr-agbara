@@ -137,7 +137,7 @@ export async function bulkAssignEmployees(
   }
 
   const supabase = createClient();
-  const values: Record<string, string | null> = { updated_at: new Date().toISOString() };
+  const values: { updated_at: string; department_id?: string; shift_id?: string } = { updated_at: new Date().toISOString() };
   if (updateDepartment) {
     if (!departmentId) return { error: "Choose a department.", updated: 0 };
     values.department_id = departmentId;

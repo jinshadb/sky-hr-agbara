@@ -5,18 +5,38 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { processBiometricUpload, type BiometricRow } from "@/app/actions/biometric";
 
-// Accepts a range of common biometric export column names.
+// Accept common device exports, including Sky's Employee ID / First Name report.
 const COLUMN_ALIASES: Record<string, string[]> = {
-  biometric_id: ["biometric_id", "biometric id", "emp code", "employee no", "id", "device id", "card no"],
-  name: ["name", "employee name"],
+  biometric_id: ["biometric_id", "biometric id", "emp code", "employee id", "employee no", "employee number", "id", "device id", "card no"],
+  name: ["name", "employee name", "first name"],
   work_date: ["date", "work_date", "attendance date"],
-  first_in: ["in", "in time", "first in", "check in", "punch in"],
-  last_out: ["out", "out time", "last out", "check out", "punch out"],
-  hours_worked: ["hours", "hours worked", "total hours", "duration"],
+  first_in: ["in", "in time", "first in", "first punch", "check in", "punch in"],
+  last_out: ["out", "out time", "last out", "last punch", "check out", "punch out"],
+  hours_worked: ["hours", "hours worked", "total hours", "total time", "duration"],
 };
 
 function normalizeKey(k: string) {
-  return k.trim().toLowerCase();
+  return k.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function findHeaderIndex(matrix: any[][]): number {
+  return matrix.findIndex((row) => {
+    const keys = row.map((cell) => normalizeKey(String(cell ?? "")));
+    return (
+      keys.some((key) => COLUMN_ALIASES.biometric_id.includes(key)) &&
+      keys.some((key) => COLUMN_ALIASES.work_date.includes(key))
+    );
+  });
+}
+
+function recordsFromMatrix(matrix: any[][]): Record<string, any>[] {
+  const headerIndex = findHeaderIndex(matrix);
+  if (headerIndex < 0) return [];
+
+  const headers = matrix[headerIndex].map((cell) => String(cell ?? "").trim());
+  return matrix.slice(headerIndex + 1)
+    .filter((row) => row.some((cell) => cell !== "" && cell != null))
+    .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])));
 }
 
 function mapRow(raw: Record<string, any>): BiometricRow | null {
@@ -43,8 +63,24 @@ function mapRow(raw: Record<string, any>): BiometricRow | null {
     work_date,
     first_in: find("first_in") ? String(find("first_in")).trim() : null,
     last_out: find("last_out") ? String(find("last_out")).trim() : null,
-    hours_worked: find("hours_worked") ? Number(find("hours_worked")) : null,
+    hours_worked: toHours(find("hours_worked")),
   };
+}
+
+function toHours(value: any): number | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value === "number") {
+    const hours = value >= 0 && value <= 1 ? value * 24 : value;
+    return Number.isFinite(hours) ? Math.round(hours * 100) / 100 : null;
+  }
+  const text = String(value).trim();
+  const duration = text.match(/^(\d{1,3}):(\d{2})(?::(\d{2}))?$/);
+  if (duration) {
+    const hours = Number(duration[1]) + Number(duration[2]) / 60 + Number(duration[3] ?? 0) / 3600;
+    return Math.round(hours * 100) / 100;
+  }
+  const number = Number(text);
+  return Number.isFinite(number) ? number : null;
 }
 
 function toIsoDate(value: any): string | null {
@@ -67,29 +103,39 @@ export default function UploadForm() {
   const [fileName, setFileName] = useState("");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
+  const [parseWarning, setParseWarning] = useState<string | null>(null);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setResult(null);
+    setParseWarning(null);
     setFileName(file.name);
 
-    let raw: Record<string, any>[] = [];
-    if (file.name.endsWith(".csv")) {
+    let matrix: any[][] = [];
+    if (file.name.toLowerCase().endsWith(".csv")) {
       const text = await file.text();
-      raw = Papa.parse(text, { header: true, skipEmptyLines: true }).data as any[];
+      matrix = Papa.parse(text, { header: false, skipEmptyLines: true }).data as any[][];
     } else {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array", cellDates: false });
       const sheet = wb.Sheets[wb.SheetNames[0]];
-      raw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" }) as any[][];
+    }
+
+    const headerIndex = findHeaderIndex(matrix);
+    if (headerIndex < 0) {
+      setRows([]);
+      setSkipped(0);
+      setParseWarning("Could not find a header row containing an Employee/Biometric ID and Date.");
+      return;
     }
 
     const mapped: BiometricRow[] = [];
     let skip = 0;
-    for (const r of raw) {
-      const m = mapRow(r);
-      if (m) mapped.push(m);
+    for (const record of recordsFromMatrix(matrix)) {
+      const row = mapRow(record);
+      if (row) mapped.push(row);
       else skip++;
     }
     setRows(mapped);
@@ -97,7 +143,7 @@ export default function UploadForm() {
   }
 
   function commit() {
-    if (!rows) return;
+    if (!rows?.length) return;
     startTransition(async () => {
       const res = await processBiometricUpload(fileName, rows);
       if (res.error) {
@@ -115,6 +161,8 @@ export default function UploadForm() {
   return (
     <div className="space-y-3">
       <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="text-sm" />
+
+      {parseWarning && <p className="text-sm text-amber-700">{parseWarning}</p>}
 
       {rows && (
         <div className="space-y-2">
@@ -148,7 +196,7 @@ export default function UploadForm() {
               </tbody>
             </table>
           </div>
-          <button className="btn-primary" onClick={commit} disabled={pending}>
+          <button className="btn-primary" onClick={commit} disabled={pending || rows.length === 0}>
             {pending ? "Processing…" : `Confirm & process ${rows.length} rows`}
           </button>
         </div>
